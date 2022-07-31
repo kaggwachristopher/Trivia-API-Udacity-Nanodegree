@@ -43,10 +43,10 @@ From within the `./src` directory first ensure you are working using your create
 To run the server, execute:
 
 ```bash
-flask run --reload
+set FLASK_DEBUG=1 && python -m flask run
 ```
 
-The `--reload` flag will detect file changes and restart the server automatically.
+This will detect file changes and restart the server automatically.
 
 ## To Do Tasks
 
@@ -67,13 +67,10 @@ One note before you delve into your tasks: for each endpoint, you are expected t
 8. Create a `POST` endpoint to get questions to play the quiz. This endpoint should take a category and previous question parameters and return a random questions within the given category, if provided, and that is not one of the previous questions.
 9. Create error handlers for all expected errors including 400, 404, 422, and 500.
 
-## Documenting your Endpoints
 
-You will need to provide detailed documentation of your API endpoints including the URL, request parameters, and the response body. Use the example below as a reference.
+### Api Documentation
 
-### Documentation Example
-
-`GET '/api/v1.0/categories'`
+`GET '/categories'`
 
 - Fetches a dictionary of categories in which the keys are the ids and the value is the corresponding string of the category
 - Request Arguments: None
@@ -90,11 +87,190 @@ You will need to provide detailed documentation of your API endpoints including 
 }
 ```
 
+#### `GET '/questions'`
+- Fetches a dictionary which includes a list of questions, the category of the returned questions, success status and pagination data
+- Request Arguments: `page` (the page number) (optional, integer)
+- Returns: A multiple key/value pairs object with the following 
+
+Here is an example of the returned object:
+
+```JSON
+{
+  "categories": {
+    "1": "Sports"
+  },
+  "current_category": [
+    1
+  ],
+  "questions": [
+    {
+      "answer": "Mikel Arteta",
+      "category": 1,
+      "difficulty": 2,
+      "id": 12,
+      "question": "Who is Arsenal's current manager?"
+    }
+  ],
+  "success": true,
+  "total_questions": 5
+}
+```
+
+#### `DELETE '/questions/<int:question_id>'`
+- Deletes the question with the specified `question_id`.
+- Request Arguments: `question_id` as a path variable (required, integer)
+- Returns: A single key/value pairs object with the following structure:
+    - `success`: can take values `True` or `False` depending on the successfullness of the endpoint's execution.
+    - `deleted`: Will return the id of the deleted question.
+
+Here is an example of the returned object:
+
+```JSON
+{
+  
+  "success": True,
+  "deleted": 3
+}
+```
+
+#### `POST '/questions'`
+- Creates a new question and saves it in the database.
+- Request Arguments: a key/value pairs object with the following properties:
+    - `question`: the question text.
+    - `answer`: the answer to the question to be created.
+    - `difficulty`: difficulty level(a whole number).
+    - `category`: category ID field.
+
+Sample request object:
+
+```JSON
+{
+      "answer": "Mikel Arteta",
+      "category": 1,
+      "difficulty": 2,
+      "question": "Who is Arsenal's current manager?"
+}
+```
+
+- Returns: A single key/value pairs object with the following structure:
+    - `success`: can take values `True` or `False` depending on the successfullnes of the endpoint's execution.
+    - `created`: Returns the value of the newly created question.id,
+
+Here is an example of the returned object:
+
+```JSON
+{
+  
+  "success": True,
+  "created": 3
+}
+```
+
+#### `POST '/questions_search'`
+- Returns questions that match a provided search query
+- Request Arguments:
+    - `searchTerm`: a substring to compare and match with existing questions
+- Returns: A multiple key/value pairs object with the following structure:
+    - `success`: can take values `True` or `False` depending on the successfullnes of the endpoint's execution.
+    - `questions`: contains a list of the matched questions. Each question is a single key/value pairs object containing `id`, `answer`,  `question`, `category` and  `dificulty`.
+    - `total_questions`: the number of questions returned.
+
+Here is an example of the returned object:
+
+```JSON
+{
+  "questions": [
+    {
+      "id": 3,
+      "answer": "Mikel Arteta",
+      "category": 1,
+      "difficulty": 2,
+      "question": "Who is Arsenal's current manager?"
+    }
+  ],
+  "success": true,
+  "total_questions": 1,
+  "current_category": None
+}
+
+```
+
+#### `GET '/categories/<int:category_id>/questions'`
+- Returns a questions that fall under a specific category.
+- Request Arguments:
+    - `category_id`: the `id` of the desired category as a path parameter
+- Returns: A multiple key/value pairs object with the following structure:
+    - `success`: can take values `True` or `False` depending on the successfullnes of the endpoint's execution.
+    - `questions`: contains a list of the fetched questions. Each question is a key/value pairs object containing `id`,  `question`, `category` and  `dificulty`.
+    - `total_questions`: the number of questions returned.
+
+Here is an example of the returned object:
+```json
+{
+  "questions": [
+    {
+      "id": 3,
+      "answer": "Mikel Arteta",
+      "category": 1,
+      "difficulty": 2,
+      "question": "Who is Arsenal's current manager?"
+    },
+    {...}
+  ],
+  "success": true,
+  "total_questions": 5
+}
+```
+
+#### `POST '/quizzes'`
+- Asks a question from a specified `quiz_category`
+- Request Arguments:
+    - `quiz_category`: question's category id field.
+    - `previous_questions`: a list of the recent questions, none of these will be asked if there still some unasked questions
+
+Sample request object
+```JSON
+{
+      "quiz_category": 1,
+      "previous_questions": [2,1]
+}
+```
+
+- Returns: A multiple key/value pairs object with the following content:
+    - `success`: can take values `True` or `False` depending on the successfullnes of the endpoint's execution.
+    - `question`: contains the question. Question is a key/value pairs object containing `id`,  `question`, `answer`, `category` and  `dificulty`.
+
+Here is an example of the returned object:
+```JSON
+{
+  "question": {
+      "id": 3,
+      "answer": "Mikel Arteta",
+      "category": 1,
+      "difficulty": 2,
+      "question": "Who is Arsenal's current manager?"
+  },
+  "success": true
+}
+```
+
+#### Failed Requests
+All failed requests have a similar response structure. <br/>
+- Returns: A multiple key/value pairs object with the following content:
+    - `success`: All failures will have this value as false
+    - `error`: HTTP status code for the failure, read more about status codes [here](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)
+    - `message`: Explaination of the failure
+```JSON
+{
+  "success": False,
+  "error": 400,
+  "message": "Bad Request"
+}
+```
+
 ## Testing
 
-Write at least one test for the success and at least one error behavior of each endpoint using the unittest library.
-
-To deploy the tests, run
+To deploy the tests, navigate into your virtual environment and run
 
 ```bash
 dropdb trivia_test

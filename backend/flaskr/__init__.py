@@ -90,7 +90,7 @@ def create_app(test_config=None):
                 "questions": current_questions,
                 "total_questions": len(questions),
                 "current_category": None,
-                "categories": {cat.id: cat.type for cat in categories}
+                "categories": {category.id: category.type for category in categories}
             })
         except Exception as e:
             abort(500)
@@ -215,6 +215,7 @@ def create_app(test_config=None):
     @app.route('/quizzes', methods=['POST'])
     def play_quizzes_by_category():
         questions = None
+        quiz_pool = []
         body = request.get_json()
         previous_questions = body.get('previous_questions')
         category = body.get('quiz_category')
@@ -227,7 +228,15 @@ def create_app(test_config=None):
             else:
                 questions = Question.query.filter_by(
                     category=category['id']).all()
-            question = questions[random.randrange(0, len(questions), 1)]
+
+            for q in questions:
+                if q['id'] not in previous_questions:
+                    quiz_pool.append(q)
+
+            if len(quiz_pool) < 0:
+                quiz_pool = questions
+
+            question = random.choice(quiz_pool)
 
             return jsonify({
                 'success': True,
@@ -279,8 +288,3 @@ def create_app(test_config=None):
             'error': 500,
             'message': 'Internal server error'
         }), 500
-
-    if __name__ == '__main__':
-        app.run(debug=True)
-
-    return app
