@@ -1,3 +1,4 @@
+import json
 from msilib.schema import Environment, Error
 import os
 from unicodedata import category
@@ -11,18 +12,9 @@ from models import setup_db, Question, Category
 QUESTIONS_PER_PAGE = 10
 
 
-def paginate_questions(request, selection):
-    page_before_cast = request.args.get('page')
-    # If a page is provided and it's not a valid integer
-    if page_before_cast and not page_before_cast.isdigit():
-        raise Exception("page number must be a digit")
-
-    page = request.args.get('page', 1, type=int)
-    start = (page - 1) * QUESTIONS_PER_PAGE
-    end = start + QUESTIONS_PER_PAGE
-    questions = [question.format() for question in selection]
-    current_questions = questions[start:end]
-    return current_questions
+def format_question_list(questions_list):
+    formatted_questions = [question.format() for question in questions_list]
+    return formatted_questions
 
 
 def create_app(test_config=None):
@@ -79,21 +71,26 @@ def create_app(test_config=None):
     """
     @app.route('/questions', methods=['GET'])
     def get_questions():
-        try:
-            questions = Question.query.all()
-            current_questions = paginate_questions(request, questions)
-            categories = Category.query.all()
-            if (len(current_questions) == 0):
-                abort(404)
-            return jsonify({
-                "success": True,
-                "questions": current_questions,
-                "total_questions": len(questions),
-                "current_category": None,
-                "categories": {category.id: category.type for category in categories}
-            })
-        except Exception as e:
-            abort(500)
+        page_before_cast = request.args.get('page')
+        # If a page is provided and it's not a valid integer
+        if page_before_cast and not page_before_cast.isdigit():
+            abort(400)
+
+        current_questions = Question.query.paginate(
+            request.args.get('page', 1, type=int), QUESTIONS_PER_PAGE, False)
+
+        categories = Category.query.all()
+        if (current_questions.total == 0):
+            abort(404)
+
+        return jsonify({
+            "success": True,
+            "questions": format_question_list(current_questions.items),
+            "total_questions": current_questions.total,
+            "current_category": None,
+            "categories": {category.id: category.type for category in categories}
+        })
+
     """
     @TODO:
     Create an endpoint to DELETE question using a question ID.
@@ -163,14 +160,12 @@ def create_app(test_config=None):
         if searchTerm is None:
             abort(400)
         matched_questions = Question.query.filter(
-            Question.question.ilike(f'%{searchTerm}%')).all()
-        current_questions = paginate_questions(request, matched_questions)
-        total_questions = len(matched_questions)
+            Question.question.ilike(f'%{searchTerm}%')).paginate(1, QUESTIONS_PER_PAGE, False)
 
         return jsonify({
             'success': True,
-            'questions': current_questions,
-            'total_questions': total_questions,
+            'questions': format_question_list(matched_questions.items),
+            'total_questions': matched_questions.total,
             'current_categroy': None
         })
 
@@ -191,13 +186,12 @@ def create_app(test_config=None):
         else:
             try:
                 category = category
-                selection = Question.query.filter_by(
-                    category=category.id).all()
-                question_paginate = paginate_questions(request, selection)
+                questions = Question.query.filter_by(
+                    category=category.id).paginate(1, QUESTIONS_PER_PAGE, False)
                 return jsonify({
                     'success': True,
-                    'questions': question_paginate,
-                    'total_questions': len(Question.query.all()),
+                    'questions': format_question_list(questions.items),
+                    'total_questions': questions.total,
                     'current_categroy': category.format()['type']})
             except Exception:
                 abort(500)
