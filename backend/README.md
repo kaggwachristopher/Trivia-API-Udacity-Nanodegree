@@ -278,3 +278,7 @@ createdb trivia_test
 psql trivia_test < trivia.psql
 python test_flaskr.py
 ```
+
+## Acknowledgments
+Extended appreciation and credits to the following for the helpul resources
+- [MDN web docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) for http statuses
