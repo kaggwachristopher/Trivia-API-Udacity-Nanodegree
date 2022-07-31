@@ -222,27 +222,27 @@ def create_app(test_config=None):
         if ((previous_questions is None) or (category is None)):
             abort(400)
         try:
-            question = {}
+            question_to_ask = {}
             if (category['id'] == 0):
                 questions = Question.query.all()
             else:
                 questions = Question.query.filter_by(
                     category=category['id']).all()
 
-            for q in questions:
-                if q['id'] not in previous_questions:
-                    quiz_pool.append(q)
+            for question in questions:
+                if question.id not in previous_questions:
+                    quiz_pool.append(question)
 
-            if len(quiz_pool) < 0:
+            if len(quiz_pool) <= 0:
                 quiz_pool = questions
 
-            question = random.choice(quiz_pool)
-
+            question_to_ask = random.choice(quiz_pool)
             return jsonify({
                 'success': True,
-                'question': question.format()
+                'question': question_to_ask.format()
             })
         except Exception as e:
+            print(e)
             abort(500)
     """
     @TODO:
@@ -288,3 +288,8 @@ def create_app(test_config=None):
             'error': 500,
             'message': 'Internal server error'
         }), 500
+
+    if __name__ == '__main__':
+        app.run(debug=True)
+
+    return app
